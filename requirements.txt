@@ -1,0 +1,13 @@
+django
+psycopg2-binary
+djangorestframework
+python-decouple
+django-filter
+django-cors-headers
+dj-database-url
+whitenoise
+drf_yasg
+celery
+redis
+djangorestframework-simplejwt
+
