@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from datetime import timedelta
-
+from django.utils.translation import gettext_lazy as _
 import dj_database_url
 from decouple import config
 from pathlib import Path
@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -117,11 +118,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'Ru-ru'
+LANGUAGE_CODE = 'ru'
+
 LANGUAGES = (
-    ('kg', 'Kyrgyz'),
-    ('en', 'English'),
-    ('ru', 'Russian'),
+    ('kg', _('Kirghiz')),
+    ('en', _('English')),
+    ('ru', _('Russian')),
 )
 
 TIME_ZONE = 'Asia/Bishkek'
@@ -130,10 +132,10 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-LOCALE_PATHS = (
-    'local',
+LOCALE_PATHS = [
+    BASE_DIR / 'locale/',
+]
 
-)
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
