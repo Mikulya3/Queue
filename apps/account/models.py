@@ -3,35 +3,38 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.account.managers import UserManager
 
+POSITION_CHOICES = (
+        ('admin','Administrator'),
+        ('operator','Operator'),
+        ('consultant', 'Consultant'),
+        ('manager','Manager')
+    )
+
+ACCESS_LEVELS = {
+        'admin': 'full_access',
+        'operator': 'partial_access',
+        'consultant': 'read_only',
+        'manager': 'limited_access'
+    }
 
 class QueueUser(AbstractUser):
-    POSITION_CHOICES = (
-        ('admin','Administrator'),
-        ('operator','Operator')
-    )
-    AUTH_MODE_CHOICES = (
-        ('domain', 'Domain'),
-        ('embedded', 'Embedded'),
-    )
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     Last_name = models.CharField(_("last name"), max_length=150, blank=True)
     middle_name = models.CharField(_("middle_name"), max_length=150, blank=True)
-    position = models.CharField(_("positions"),max_length=100, choices=POSITION_CHOICES)
+    position = models.CharField(_("position"),max_length=100, choices=POSITION_CHOICES)
     window_number = models.CharField(_("window number"), max_length=100)
     note = models.TextField(_("note"),blank=True)
-    auth_mode = models.CharField(max_length=100, choices=AUTH_MODE_CHOICES)
-    blocked = models.BooleanField(default=False)
-    access_level = models.CharField(max_length=100)
-    call_outside_queue = models.BooleanField(default=False)
-    modify_queue_list = models.BooleanField(default=False)
-    create_and_close_tickets = models.BooleanField(default=False)
+    access_level = models.CharField(_("ACCESS_LEVELS"), max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
     activation_code = models.CharField(max_length=40, blank=True)
-    domain_auth = models.BooleanField(default=True)
     username = models.CharField(max_length=100,unique=True)
     is_blocked = models.BooleanField(default=False)
-    access_level = models.CharField(max_length=100)
+
+    def save(self, *args, **kwargs):
+        if self.position in ACCESS_LEVELS:
+            self.access_level = ACCESS_LEVELS[self.position]
+        super().save(*args, **kwargs)
 
     def block_user(self):
         self.is_blocked = True
