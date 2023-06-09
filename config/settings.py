@@ -17,6 +17,7 @@ from decouple import config
 from pathlib import Path
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -138,10 +139,6 @@ LANGUAGES = (
     ('en', _('English')),
     ('ru', _('Russian')),
 
-)
-
-
-
 
 TIME_ZONE = 'Asia/Bishkek'
 
@@ -150,9 +147,11 @@ USE_L10N = True
 USE_TZ = True
 
 
+
 LOCALE_PATHS = [
     BASE_DIR / 'locale/',
 ]
+
 
 
 # Static files (CSS, JavaScript, Images)
