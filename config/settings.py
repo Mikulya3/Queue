@@ -52,7 +52,7 @@ INSTALLED_APPS = [
 
     # apps
     'apps.account',
-    'operator_panel'
+    'apps.operators'
 
 
 ]

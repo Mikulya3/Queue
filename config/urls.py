@@ -22,7 +22,7 @@ from rest_framework import permissions
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
-from operator_panel.views import OperatorViewSet
+from apps.operators.views import OperatorViewSet
 
 router = routers.DefaultRouter()
 router.register(r'operators', OperatorViewSet)
