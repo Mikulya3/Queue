@@ -1,4 +1,5 @@
 
+
 from rest_framework import status
 from rest_framework.views import APIView
 from .models import Operator
@@ -70,9 +71,6 @@ class OperatorDeleteView(generics.DestroyAPIView):
         return Response({"message": "Оператор успешно удален", "data": self.get_serializer(instance).data})
 
 # ---------------------------------------------------------------------------------------------------------------------<
-
-
-
 
 
 

@@ -6,5 +6,4 @@ class OperatorsConfig(AppConfig):
 
     name = 'apps.operators'
 
-    name = 'operators'
 

@@ -21,5 +21,6 @@ class Operator(models.Model):
         return f"Operator: {self.name.first_name} (Window: {self.name.window_number})"
 
 
-# Create your models here.
+
+
 
