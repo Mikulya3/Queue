@@ -16,6 +16,7 @@ import dj_database_url
 from decouple import config
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,7 +31,8 @@ SECRET_KEY = config('SECRET_KEY')
 #DEBUG = config('DEBUG', cast=bool)
 DEBUG = True
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+#ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
 
 # Application definition
@@ -49,10 +51,16 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_yasg',
     'django_filters',
+    'dj_database_url',
 
     # apps
     'apps.account',
-    'apps.operators'
+    'apps.operators',
+    'apps.talon',
+
+
+
+
 
 
 ]
@@ -222,6 +230,13 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 
 BROKER_URL = 'redis://127.0.0.1:6379/0'
+RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # URL для хранения результатов задач
+CELERY_BEAT_SCHEDULE = {
+    'call_customer_task': {
+        'task': 'apps.talon.tasks.call_customer',
+        'schedule': 10.0,  # Выполнение каждые 10 секунд
+    },
+}
 BROKER_TRANSPORT = 'redis'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
@@ -280,3 +295,9 @@ LOGGING = {
 
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Redis settings
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'

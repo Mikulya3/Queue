@@ -19,13 +19,7 @@ from django.urls import path, include
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from django.conf import settings
-from django.conf.urls.static import static
-from rest_framework import routers
-from apps.operators.views import OperatorViewSet
 
-router = routers.DefaultRouter()
-router.register(r'operators', OperatorViewSet)
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -40,8 +34,9 @@ schema_view = get_schema_view(
 )
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('operators_panel/', include(router.urls)),
     path('swagger/', schema_view.with_ui('swagger')),
     path('account/', include('apps.account.urls')),
+    path('operators/', include('apps.operators.urls')),
+    path('talon/', include('apps.talon.urls'))
 ]
 

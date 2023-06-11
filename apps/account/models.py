@@ -22,7 +22,7 @@ class QueueUser(AbstractUser):
     Last_name = models.CharField(_("last name"), max_length=150, blank=True)
     middle_name = models.CharField(_("middle_name"), max_length=150, blank=True)
     position = models.CharField(_("position"),max_length=100, choices=POSITION_CHOICES)
-    window_number = models.CharField(_("window number"), max_length=100)
+    window_number = models.CharField(_("window number"), max_length=10000)
     note = models.TextField(_("note"),blank=True)
     access_level = models.CharField(_("ACCESS_LEVELS"), max_length=100)
     email = models.EmailField(unique=True)

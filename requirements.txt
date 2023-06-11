@@ -10,4 +10,5 @@ drf_yasg
 celery
 redis
 djangorestframework-simplejwt
-
+django-crontab
+dj_database_url

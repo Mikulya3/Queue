@@ -1,0 +1,13 @@
+Выполните команду ps aux | grep celery для поиска процесса Celery:
+ps aux | grep celery
+
+Выполните команду kill <PID>, где <PID> - идентификатор процесса Celery, чтобы остановить его:
+bash
+Copy code
+kill <PID>
+
+Чтобы остановить все процессы Celery, вы можете воспользоваться командой killall:
+Copy code
+killall -9 celery
+
+Если вы хотите запустить Celery заново, вы можете выполнить команду ./celery_start.sh

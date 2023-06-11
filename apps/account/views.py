@@ -55,7 +55,7 @@ class ForgotPasswordCompleteAPIView(APIView):
         return Response('password have successfully changed!')
 
 class ActivationAPIView(APIView):
-    def get(self, request, activation_code, is_mentor=False):
+    def get(self, request, activation_code, is_mentor=True):
         try:
             user = User.objects.get(activation_code=activation_code)
             user.is_active = True

@@ -29,3 +29,4 @@ def send_confirmation_code(email, code):
         'Kadirbekova43@gmail.com',
         [email]
     )
+
