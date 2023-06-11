@@ -35,7 +35,6 @@ class QueueUser(AbstractUser):
         if self.position in ACCESS_LEVELS:
             self.access_level = ACCESS_LEVELS[self.position]
         super().save(*args, **kwargs)
-
     def block_user(self):
         self.is_blocked = True
         self.save()

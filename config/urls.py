@@ -20,6 +20,10 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from django.conf import settings
+from django.conf.urls.static import static
+
+
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -37,6 +41,6 @@ urlpatterns = [
     path('swagger/', schema_view.with_ui('swagger')),
     path('account/', include('apps.account.urls')),
     path('operators/', include('apps.operators.urls')),
-    path('talon/', include('apps.talon.urls'))
+    path('talon/', include('apps.talon.urls')),
 ]
 

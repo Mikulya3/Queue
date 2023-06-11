@@ -17,6 +17,7 @@ from decouple import config
 from pathlib import Path
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,11 +29,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
+
 #DEBUG = config('DEBUG', cast=bool)
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 #ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+
+DEBUG = True
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+
 
 
 # Application definition
@@ -57,11 +64,6 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
-
-
-
-
-
 
 ]
 
@@ -101,14 +103,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', cast=int),
-    }
+
+    'default': dj_database_url.config(default=config('DB_URL'))
 }
 
 # Password validation
@@ -132,6 +128,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
+
 
 LANGUAGE_CODE = 'Ru-ru'
 LANGUAGES = (
@@ -230,6 +227,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 
 BROKER_URL = 'redis://127.0.0.1:6379/0'
+
 RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # URL для хранения результатов задач
 CELERY_BEAT_SCHEDULE = {
     'call_customer_task': {
@@ -237,6 +235,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 10.0,  # Выполнение каждые 10 секунд
     },
 }
+
 BROKER_TRANSPORT = 'redis'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
@@ -301,3 +300,5 @@ REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
 CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
