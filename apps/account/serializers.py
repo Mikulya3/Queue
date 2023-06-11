@@ -108,3 +108,6 @@ class ForgotPasswordCompleteSerializer(serializers.Serializer):
 
 class DeleteAccountSerializer(serializers.Serializer):
     password = serializers.CharField(min_length=5, write_only=True)
+
+
+

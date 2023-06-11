@@ -1,5 +1,6 @@
 from django.test import TestCase
 
+
 import requests
 
 def get_operators():
@@ -14,3 +15,4 @@ def get_operators():
         print("Ошибка при получении данных.")
 
 get_operators()
+

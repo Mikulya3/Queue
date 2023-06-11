@@ -11,11 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from datetime import timedelta
-
+from django.utils.translation import gettext_lazy as _
 import dj_database_url
 from decouple import config
 from pathlib import Path
-
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,6 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
+
 #DEBUG = config('DEBUG', cast=bool)
 DEBUG = True
 
@@ -39,8 +39,6 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 DEBUG = True
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
-
-
 
 # Application definition
 
@@ -64,12 +62,15 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
+    # apps
+    'apps.account',
 
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -107,6 +108,7 @@ DATABASES = {
     'default': dj_database_url.config(default=config('DB_URL'))
 }
 
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -129,12 +131,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
+LANGUAGE_CODE = 'ru'
 
-LANGUAGE_CODE = 'Ru-ru'
 LANGUAGES = (
-    ('kg', 'Kyrgyz'),
-    ('en', 'English'),
-    ('ru', 'Russian'),
+    ('kg', _('Kirghiz')),
+    ('en', _('English')),
+    ('ru', _('Russian')),
+
 )
 
 TIME_ZONE = 'Asia/Bishkek'
@@ -143,10 +146,16 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+
 LOCALE_PATHS = (
     'local',
 
 )
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale/',
+]
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -228,6 +237,7 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 
 BROKER_URL = 'redis://127.0.0.1:6379/0'
 
+
 RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # URL для хранения результатов задач
 CELERY_BEAT_SCHEDULE = {
     'call_customer_task': {
@@ -235,6 +245,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 10.0,  # Выполнение каждые 10 секунд
     },
 }
+
 
 BROKER_TRANSPORT = 'redis'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
