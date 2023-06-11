@@ -1,13 +1,20 @@
 from rest_framework import serializers
 from apps.talon.models import Ticket, TicketHistory
 from apps.operators.serializers import OperatorSerializer
+import re
 
 
+def validate_ticket_number(value):
+    pattern = r'^[A-Z]-\d{3}$'
+    if not re.match(pattern, value):
+        raise serializers.ValidationError("Неверный формат номера.")
+    return value
 
 
 class TicketSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     operator = OperatorSerializer(required=False)
+    number = serializers.CharField(validators=[validate_ticket_number])
 
     class Meta:
         model = Ticket

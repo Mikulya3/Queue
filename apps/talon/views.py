@@ -65,9 +65,11 @@ def call_ticket_view(request):
 
 class TalonCreateAPIView(APIView):
     def post(self, request, format=None):
-        # Создание нового талона с номером в формате 'X-123' (где X - буква, 123 - цифры)
         last_ticket = Ticket.objects.order_by('-number').first()
-        last_number = int(last_ticket.number.split('-')[1]) if last_ticket else 0
+        last_number = 0
+        if last_ticket and '-' in last_ticket.number:
+            last_number = int(last_ticket.number.split('-')[1])
+
         new_number = chr(ord('A') + last_number // 1000) + '-' + str(last_number + 1).zfill(3)
         serializer = TicketSerializer(data={'number': new_number, **request.data})
         if serializer.is_valid():
