@@ -14,9 +14,10 @@ class Ticket(models.Model):
     number = models.CharField(max_length=1000, unique=True)  # Поле для присваивания номера
     created_at = models.DateTimeField(auto_now_add=True)
     operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True)
-    is_completed = models.BooleanField(default=False)
     is_veteran = models.BooleanField(default=False)
     failed_attempts = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=255)  # Добавьте поле status
+    status_signal = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['id']
@@ -32,9 +33,28 @@ class OutherTalon(models.Model):
     operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True)
     start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
 
 
 
 class CallCustomerTask(models.Model):
     enabled = models.BooleanField(default=False)
+
+class TicketArchive(models.Model):
+    number = models.CharField(max_length=1000)  # Поле для присваивания номера
+    created_at = models.DateTimeField(auto_now_add=True)
+    operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True)
+    is_veteran = models.BooleanField(default=False)
+    failed_attempts = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=255,
+                              default="Не подошел")  # Добавьте поле status со значением по умолчанию "Не подошел"
+    status_signal = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.number
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 
