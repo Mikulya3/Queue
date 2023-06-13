@@ -1,15 +1,18 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .models import Ticket, TicketHistory
+from .models import Ticket, OutherTalon, CallCustomerTask
 from apps.operators.models import Operator
-from .serializers import TicketSerializer, TicketHistorySerializer
+from .serializers import TicketSerializer, OutherTalonSerializer, TicketUpdateSerializer, CallCustomerTaskSerializer
 from rest_framework.exceptions import NotFound
 from django.http import HttpResponse
-from apps.talon.tasks import call_customer
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from datetime import datetime
-from django.db import transaction
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db.models import Max, F
+
+
+
 
 
 class TicketListAPIView(generics.ListAPIView):
@@ -19,7 +22,28 @@ class TicketListAPIView(generics.ListAPIView):
         queryset = Ticket.objects.filter(operator__isnull=True).order_by('created_at')
         if not queryset.exists():
             raise NotFound('Талонов в очереди нет.')
+
+        now = timezone.now()
+        for ticket in queryset:
+            ticket.actual_waiting_time = now - ticket.created_at
+
         return queryset
+
+
+class TicketUpdateAPIView(generics.UpdateAPIView):
+    queryset = Ticket.objects.all()
+    serializer_class = TicketUpdateSerializer
+    lookup_field = 'pk'  # Поле для поиска экземпляра билета (по умолчанию 'pk')
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        instance = self.get_object()
+        data = request.data
+
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 
 class TicketListOperatorsAPIView(generics.ListAPIView):
     serializer_class = TicketSerializer
@@ -29,6 +53,9 @@ class TicketListOperatorsAPIView(generics.ListAPIView):
         if not queryset.exists():
             raise NotFound('Талонов в обслуживании нет.')
         return queryset
+
+
+from django.db.models import F
 
 
 class CallTicketAPIView(generics.UpdateAPIView):
@@ -44,39 +71,101 @@ class CallTicketAPIView(generics.UpdateAPIView):
 
         # Проверяем, обслуживает ли оператор уже талон
         if operator.ticket_set.exists():
-            return Response("Оператор уже обслуживает талон", status=status.HTTP_400_BAD_REQUEST)
+            ticket = operator.ticket_set.first()
+            if ticket.failed_attempts < 2:
+                ticket.failed_attempts += 1
+                ticket.save()
+                return Response("Вызов посетителя неудачен. Попытка номер {}.".format(ticket.failed_attempts))
+
+            # Перемещаем талон обратно в конец очереди
+            ticket.operator = None
+            ticket.failed_attempts = 0
+            ticket.save()
+
+            # Перезагружаем объект ticket из базы данных, чтобы получить его обновленные значения
+            ticket.refresh_from_db()
+
+            return Response("Талон успешно перемещен в конец очереди.")
 
         try:
-            ticket = Ticket.objects.filter(operator=None).order_by('created_at').first()
-        except Ticket.DoesNotExist:
-            return Response("Талоны в очереди отсутствуют", status=status.HTTP_404_NOT_FOUND)
+            # Получаем последний талон в очереди
+            last_ticket = Ticket.objects.filter(operator=None).order_by('-id').first()
+            if last_ticket:
+                last_ticket_id = last_ticket.id
+            else:
+                last_ticket_id = 0
 
-        ticket.operator = operator
-        ticket.save()
+            # Создаем новый талон с уникальным номером и новым ID
+            new_ticket = Ticket.objects.create(
+                number=generate_ticket_number(),
+                id=last_ticket_id + 1,
+                **request.data
+            )
 
-        serializer = self.get_serializer(ticket)
+            # Устанавливаем оператора для нового талона
+            new_ticket.operator = operator
+            new_ticket.failed_attempts = 0
+            new_ticket.save()
+
+        except Exception as e:
+            return Response("Ошибка при создании нового талона: {}".format(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = self.get_serializer(new_ticket)
         return Response(serializer.data)
 
-def call_ticket_view(request):
-    # Вызов Celery-задачи для автоматического вызова талона
-    call_customer.delay()
 
-    return HttpResponse("Задача по вызову талона запущена.")
+
+
+
+
+
+
+
+
+
 
 class TalonCreateAPIView(APIView):
     def post(self, request, format=None):
-        last_ticket = Ticket.objects.order_by('-number').first()
-        last_number = 0
-        if last_ticket and '-' in last_ticket.number:
-            last_number = int(last_ticket.number.split('-')[1])
+        # Создание нового талона с уникальным номером в формате 'X-123' (где X - буква, 123 - цифры)
+        number_exists = True
+        new_number = None
+        while number_exists:
+            new_number = generate_ticket_number()
+            number_exists = Ticket.objects.filter(number=new_number).exists()
 
-        new_number = chr(ord('A') + last_number // 1000) + '-' + str(last_number + 1).zfill(3)
         serializer = TicketSerializer(data={'number': new_number, **request.data})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+def generate_ticket_number():
+    last_number = get_last_ticket_number()  # Получение последнего номера талона
+    new_number = chr(ord('A') + last_number // 1000) + '-' + str((last_number % 1000) + 1).zfill(3)
+    update_last_ticket_number(last_number + 1)  # Обновление последнего номера талона
+    return new_number
+
+last_ticket_number = 0
+
+def get_last_ticket_number():
+    try:
+        with open('last_ticket_number.txt', 'r') as file:
+            last_number = int(file.read())
+    except FileNotFoundError:
+        last_number = 0
+        update_last_ticket_number(last_number)
+    return last_number
+
+def update_last_ticket_number(new_number):
+    with open('last_ticket_number.txt', 'w') as file:
+        file.write(str(new_number))
+
+class ResetTalonNumberAPIView(APIView):
+    def post(self, request, format=None):
+        new_start_number = request.data.get('start_number', 1)
+        update_last_ticket_number(new_start_number - 1)
+        return Response({'message': 'Номера талонов были сброшены.'}, status=status.HTTP_200_OK)
 
 class CompleteTicketAPIView(generics.DestroyAPIView):
     queryset = Ticket.objects.all()
@@ -92,24 +181,40 @@ class CompleteTicketAPIView(generics.DestroyAPIView):
         if not ticket.operator:
             return Response("Талон не обслуживается", status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():
-            # Создание дубликата талона
-            duplicate_ticket = Ticket.objects.create(
-                created_at=ticket.created_at,
-            )
+        operator = ticket.operator  # Получить оператора, связанного с талоном
+        ticket.delete()
 
-            # Сохранение записи в историю талона с связью на дубликат талона
-            history_entry = TicketHistory(
-                ticket=duplicate_ticket,
-                status=TicketHistory.STATUS_COMPLETED,
-                completed_at=datetime.now()
-            )
-            history_entry.save()
+        outher_talon = OutherTalon(number=ticket.number, operator=operator)
+        outher_talon.end_time = datetime.now()  # Установите текущее время как время окончания обслуживания
+        outher_talon.created_at = ticket.created_at  # Присвоить значение created_at из объекта Ticket
+        outher_talon.start_time = ticket.created_at  # Установите значение start_time из объекта Ticket
+        outher_talon.save()
 
-            ticket.delete()
+
 
         return Response("Талон успешно завершен")
 
-class TicketHistoryListAPIView(generics.ListAPIView):
-    queryset = TicketHistory.objects.all()
-    serializer_class = TicketHistorySerializer
+
+class OutherTalonListAPIView(APIView):
+    def get(self, request):
+        outher_talons = OutherTalon.objects.all()
+        serializer = OutherTalonSerializer(outher_talons, many=True)
+        return Response(serializer.data)
+
+
+class CallCustomerTaskView(APIView):
+    def get(self, request):
+        task = CallCustomerTask.objects.first()
+        serializer = CallCustomerTaskSerializer(task)
+        return Response(serializer.data)
+
+    def put(self, request):
+        task = CallCustomerTask.objects.first()
+        serializer = CallCustomerTaskSerializer(task, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
