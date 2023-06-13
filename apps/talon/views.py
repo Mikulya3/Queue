@@ -1,3 +1,4 @@
+from loguru import logger
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .models import Ticket, TicketHistory
@@ -7,7 +8,6 @@ from rest_framework.exceptions import NotFound
 from django.http import HttpResponse
 from apps.talon.tasks import call_customer
 from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
 from datetime import datetime
 from django.db import transaction
 
@@ -85,9 +85,11 @@ class CompleteTicketAPIView(generics.DestroyAPIView):
         try:
             ticket = Ticket.objects.get(id=ticket_id)
         except Ticket.DoesNotExist:
+            logger.warning(f"Ticket {ticket_id} not found")
             return Response("Талон не найден", status=status.HTTP_404_NOT_FOUND)
 
         if not ticket.operator:
+            logger.warning(f"Ticket {ticket_id} is not being serviced")
             return Response("Талон не обслуживается", status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
@@ -105,6 +107,7 @@ class CompleteTicketAPIView(generics.DestroyAPIView):
             history_entry.save()
 
             ticket.delete()
+            logger.info(f'Ticket {ticket_id} successfully deleted')
 
         return Response("Талон успешно завершен")
 

@@ -1,5 +1,7 @@
 from django.db import models
 from apps.operators.models import Operator
+from loguru import logger
+
 
 STATUS_CHOICES = (
     ('completed', 'Обслужен'),
@@ -16,6 +18,10 @@ class Ticket(models.Model):
     def __str__(self):
         return f"Ticket {self.number}"
 
+    def save(self, *args,**kwargs):  # логгирование операции связанных с талоном талона
+        logger.info(f'Ticket {self.number} saved')
+        super().save(*args, **kwargs)
+
 class TicketHistory(models.Model):
     STATUS_COMPLETED = 'Обслужен'
     ticket = models.ForeignKey(Ticket, on_delete=models.SET_NULL, null=True)
@@ -28,4 +34,6 @@ class TicketHistory(models.Model):
     class Meta:
         ordering = ['-completed_at']
 
-
+    def save(self, *args, **kwargs):  # логгирование операции связанных с талоном талона
+        logger.info(f'Ticket {self.ticket.number} history saved. Status: {self.status}')
+        super().save(*args, **kwargs)

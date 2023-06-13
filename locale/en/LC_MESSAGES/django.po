@@ -23,27 +23,27 @@ msgstr ""
 
 #: apps/account/models.py:22
 msgid "last name"
-msgstr ""
+msgstr "last name"
 
 #: apps/account/models.py:23
 msgid "middle_name"
-msgstr ""
+msgstr "middle name"
 
 #: apps/account/models.py:24
 msgid "position"
-msgstr ""
+msgstr "position"
 
 #: apps/account/models.py:25
 msgid "window number"
-msgstr ""
+msgstr "window number"
 
 #: apps/account/models.py:26
 msgid "note"
-msgstr ""
+msgstr "note"
 
 #: apps/account/models.py:27
 msgid "ACCESS_LEVELS"
-msgstr ""
+msgstr "ACCESS LEVELS"
 
 #: config/settings.py:124
 msgid "Kirghiz"

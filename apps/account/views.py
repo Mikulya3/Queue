@@ -13,6 +13,10 @@ User = get_user_model()
 
 
 class RegisterAPIView(APIView):
+    POSITION_CHOICES = (
+        ('admin', 'Administrator'),
+        ('operator', 'Operator')
+    )
     @swagger_auto_schema(request_body=RegisterSerializer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -23,7 +27,6 @@ class RegisterAPIView(APIView):
             'An activation email has been sent to you',
             status=status.HTTP_201_CREATED
         )
-
 
 class ChangePasswordAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -56,7 +59,6 @@ class ForgotPasswordCompleteAPIView(APIView):
 
 class ActivationAPIView(APIView):
     def get(self, request, activation_code):
-
         try:
             user = User.objects.get(activation_code=activation_code)
             user.is_active = True

@@ -12,5 +12,5 @@ redis
 djangorestframework-simplejwt
 django-crontab
 dj_database_url
-
+loguru
 

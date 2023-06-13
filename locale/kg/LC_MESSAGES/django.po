@@ -19,31 +19,31 @@ msgstr ""
 
 #: apps/account/models.py:21
 msgid "first name"
-msgstr ""
+msgstr "Аты"
 
 #: apps/account/models.py:22
 msgid "last name"
-msgstr ""
+msgstr "Фамилия"
 
 #: apps/account/models.py:23
 msgid "middle_name"
-msgstr ""
+msgstr "Атасынын аты"
 
 #: apps/account/models.py:24
 msgid "position"
-msgstr ""
+msgstr "позиция"
 
 #: apps/account/models.py:25
 msgid "window number"
-msgstr ""
+msgstr "терезе номери"
 
 #: apps/account/models.py:26
 msgid "note"
-msgstr ""
+msgstr "эскертуу"
 
 #: apps/account/models.py:27
 msgid "ACCESS_LEVELS"
-msgstr ""
+msgstr "Мумкундук алуу денгээли"
 
 #: config/settings.py:124
 msgid "Kirghiz"

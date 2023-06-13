@@ -10,13 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils.translation import gettext_lazy as _
 import dj_database_url
 from decouple import config
 from pathlib import Path
 
-
+from loguru import logger
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,12 +34,12 @@ SECRET_KEY = config('SECRET_KEY')
 #DEBUG = config('DEBUG', cast=bool)
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-#ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
 DEBUG = True
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+
 
 # Application definition
 
@@ -63,8 +63,6 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
-    # apps
-    'apps.account',
 
 ]
 
@@ -138,7 +136,7 @@ LANGUAGES = (
     ('kg', _('Kirghiz')),
     ('en', _('English')),
     ('ru', _('Russian')),
-
+)
 
 TIME_ZONE = 'Asia/Bishkek'
 
@@ -149,7 +147,7 @@ USE_TZ = True
 
 
 LOCALE_PATHS = [
-    BASE_DIR / 'locale/',
+   os.path.join(BASE_DIR, 'locale')
 ]
 
 
@@ -262,44 +260,58 @@ SWAGGER_SETTINGS = {
     }
 }
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
 
-    'formatters': {
-        'config': {
-            'format': '{levelname} --{asctime} -- {module} --{message}',
-            'style': '{'
-        }
-    },
+# создаем папку logs
+log_directory = os.path.join(BASE_DIR, 'logs')
+os.makedirs(log_directory, exist_ok=True)
+rotation_duration = timedelta(days=15).total_seconds() # переводим 15 дней в сек
+logger.add(                                            # настройки loguru
+    os.path.join(log_directory, 'talon.log'),
+    rotation=rotation_duration,
+    retention='15 days',  # автоудаление после 15 дней
+    level='DEBUG'  #
+)
 
-    'handlers': {
-        'my_console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'config'
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': 'info.log',
-            'formatter': 'config',
-        },
-        'for_account': {
-            'class': 'logging.FileHandler',
-            'filename': 'apps.account.log',
-            'formatter': 'config',
-        }
-    },
-    'loggers': {
-        '': {
-            'handlers': ['my_console', 'file']
-        },
-        'apps.account.views': {
-            'handlers': ['for_account']
-        }
 
-        }
-    }
-
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'config': {
+#             'format': '{levelname} --{asctime} -- {module} --{message}',
+#             'style': '{'
+#         }
+#     },
+#     'handlers': {
+#         'my_console': {
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'config'
+#         },
+#         'file': {
+#             'class': 'logging.FileHandler',
+#             'filename': 'app.log',
+#             'formatter': 'config',
+#         },
+#         'for_registrator': {
+#             'class': 'logging.FileHandler',
+#             'filename': 'apps.registrator.log',
+#             'formatter': 'config',
+#         },
+#         'for_talon': {
+#             'class': 'logging.FileHandler',
+#             'filename': 'apps.talon.log',
+#             'formatter': 'config',
+#         },
+#     },
+#     'loggers': {
+#         '': {
+#             'handlers': ['my_console', 'file']
+#         },
+#         'apps.registrator.views': {
+#             'handlers': ['for_registrator']
+#         }
+#     }
+# }
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
