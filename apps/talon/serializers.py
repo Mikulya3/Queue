@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.talon.models import Ticket, OutherTalon, CallCustomerTask
+from apps.talon.models import Ticket, OutherTalon, CallCustomerTask, TicketArchive
 from apps.operators.serializers import OperatorSerializer
 import re
 from django.utils import timezone
@@ -45,6 +45,8 @@ class TicketSerializer(serializers.ModelSerializer):
         now = timezone.now()
         return now - ticket.created_at
 
+
+
 class TicketUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
@@ -58,7 +60,7 @@ class OutherTalonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OutherTalon
-        fields = ['id', 'number', 'start_time', 'operator', 'end_time', 'status']
+        fields = ['id', 'number', 'start_time', 'operator', 'end_time', 'status', 'is_completed']
 
     def get_status(self, obj):
         if obj.operator is not None:
@@ -69,6 +71,37 @@ class CallCustomerTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = CallCustomerTask
         fields = ('enabled',)
+
+
+class TicketArchiveSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    operator = OperatorSerializer(required=False)
+    number = serializers.CharField(validators=[validate_ticket_number])
+    actual_waiting_time = serializers.SerializerMethodField()
+
+
+
+    class Meta:
+        model = TicketArchive
+        fields = ['id', 'number', 'created_at', 'actual_waiting_time', 'status', 'operator', 'is_veteran', 'status_signal']  # Включаем поле 'operator' в опцию 'fields'
+
+    def get_status(self, obj):
+        if obj.operator is not None:
+            return 'Обслуживается'
+        else:
+            return 'В очереди'
+
+    def get_operator(self, obj):
+        if obj.operator is not None:
+            operator = obj.operator
+            return {
+                'id': operator.id,
+                'name': operator.name,
+                'is_available': operator.is_available
+            }
+        else:
+            return None
+
 
 
 
