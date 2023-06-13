@@ -13,4 +13,5 @@ djangorestframework-simplejwt
 django-crontab
 dj_database_url
 loguru
+pip==23.1.2
 
