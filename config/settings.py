@@ -32,7 +32,8 @@ SECRET_KEY = config('SECRET_KEY', default='my-default-secret-key')
 
 
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+
 
 DEBUG = False
 
