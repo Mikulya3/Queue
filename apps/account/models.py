@@ -30,6 +30,7 @@ class QueueUser(AbstractUser):
     activation_code = models.CharField(max_length=40, blank=True)
     username = models.CharField(max_length=100,unique=True)
     is_blocked = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.position in ACCESS_LEVELS:
