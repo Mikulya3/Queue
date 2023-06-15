@@ -8,10 +8,7 @@ python manage.py migrate
 # Check if CREATE_SUPERUSER variable is set
 if [ ! -z "$CREATE_SUPERUSER" ]; then
   # Create superuser
-  python manage.py createsuperuser --noinput \
-    --username=admin \
-    --email=admin@example.com \
-    --password=1
+  echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('admin', 'admin@example.com', 'password')" | python manage.py shell
 fi
 
 # Start the server
