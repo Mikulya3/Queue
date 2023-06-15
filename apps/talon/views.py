@@ -16,10 +16,6 @@ from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
 
 
-
-
-
-
 class TicketListAPIView(generics.ListAPIView):
     serializer_class = TicketSerializer
 
