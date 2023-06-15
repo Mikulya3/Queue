@@ -7,10 +7,8 @@ from .serializers import TicketSerializer, OutherTalonSerializer, TicketUpdateSe
 from rest_framework.exceptions import NotFound
 from django.http import HttpResponse
 from rest_framework.views import APIView
-<<<<<<< HEAD
 from datetime import datetime
 from django.db import transaction
-=======
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -18,7 +16,7 @@ from django.db.models import Max, F
 
 
 
->>>>>>> 1977a93 (obnovlenie app Talon)
+
 
 
 class TicketListAPIView(generics.ListAPIView):
@@ -199,11 +197,10 @@ class CompleteTicketAPIView(generics.DestroyAPIView):
         outher_talon.save()
 
 
-<<<<<<< HEAD
-            ticket.delete()
-            logger.info(f'Ticket {ticket_id} successfully deleted')
-=======
->>>>>>> 1977a93 (obnovlenie app Talon)
+
+        ticket.delete()
+        logger.info(f'Ticket {ticket_id} successfully deleted')
+
 
         return Response("Талон успешно завершен")
 

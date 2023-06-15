@@ -31,6 +31,7 @@ class QueueUser(AbstractUser):
     username = models.CharField(max_length=100,unique=True)
     is_blocked = models.BooleanField(default=False)
 
+
     def save(self, *args, **kwargs):
         if self.position in ACCESS_LEVELS:
             self.access_level = ACCESS_LEVELS[self.position]
