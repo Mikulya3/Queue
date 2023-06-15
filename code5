@@ -1,0 +1,62 @@
+class Ticket(models.Model):
+    number = models.CharField(max_length=1000, unique=True)  # Поле для присваивания номера
+    created_at = models.DateTimeField(auto_now_add=True)
+    operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    is_veteran = models.BooleanField(default=False)
+    failed_attempts = models.PositiveIntegerField(default=0)
+
+class CallTicketAPIView(generics.UpdateAPIView):
+    queryset = Ticket.objects.all()
+    serializer_class = TicketSerializer
+
+    def update(self, request, *args, **kwargs):
+        operator_id = kwargs['operator_id']
+        try:
+            operator = Operator.objects.get(id=operator_id)
+        except Operator.DoesNotExist:
+            return Response("Оператор не найден", status=status.HTTP_404_NOT_FOUND)
+
+        # Проверяем, обслуживает ли оператор уже талон
+        if operator.ticket_set.exists():
+            ticket = operator.ticket_set.first()
+            if ticket.failed_attempts < 2:
+                ticket.failed_attempts += 1
+                ticket.save()
+                return Response("Вызов посетителя неудачен. Попытка номер {}.".format(ticket.failed_attempts))
+
+            # Перемещаем талон обратно в конец очереди
+            ticket.operator = None
+            ticket.failed_attempts = 0
+            ticket.save()
+
+            # Перезагружаем объект ticket из базы данных, чтобы получить его обновленные значения
+            ticket.refresh_from_db()
+
+            return Response("Талон успешно перемещен в конец очереди.")
+
+        try:
+            # Получаем последний талон в очереди
+            last_ticket = Ticket.objects.filter(operator=None).order_by('-id').first()
+            if last_ticket:
+                last_ticket_id = last_ticket.id
+            else:
+                last_ticket_id = 0
+
+            # Создаем новый талон с уникальным номером и новым ID
+            new_ticket = Ticket.objects.create(
+                number=generate_ticket_number(),
+                id=last_ticket_id + 1,
+                **request.data
+            )
+
+            # Устанавливаем оператора для нового талона
+            new_ticket.operator = operator
+            new_ticket.failed_attempts = 0
+            new_ticket.save()
+
+        except Exception as e:
+            return Response("Ошибка при создании нового талона: {}".format(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = self.get_serializer(new_ticket)
+        return Response(serializer.data)

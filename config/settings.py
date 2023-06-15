@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'django_filters',
     'dj_database_url',
+    'django_celery_beat',
 
     # apps
     'apps.account',
