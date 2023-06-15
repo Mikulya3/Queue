@@ -8,7 +8,7 @@ User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     POSITION_CHOICES = (
-        ('admin', 'Administrator'),
+        ('administrator', 'Administrator'),
         ('operator', 'Operator')
     )
     password_confirm = serializers.CharField(min_length=5, required=True, write_only=True)
