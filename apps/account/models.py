@@ -1,23 +1,23 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, PermissionsMixin
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from apps.account.managers import UserManager
 
 POSITION_CHOICES = (
-        ('admin','Administrator'),
+        ('administrator','Administrator'),
         ('operator','Operator'),
         ('consultant', 'Consultant'),
         ('manager','Manager')
     )
 
 ACCESS_LEVELS = {
-        'admin': 'full_access',
+        'administrator': 'full_access',
         'operator': 'partial_access',
         'consultant': 'read_only',
         'manager': 'limited_access'
     }
 
-class QueueUser(AbstractUser):
+class QueueUser(AbstractUser,PermissionsMixin):
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     Last_name = models.CharField(_("last name"), max_length=150, blank=True)
     middle_name = models.CharField(_("middle_name"), max_length=150, blank=True)
@@ -30,20 +30,30 @@ class QueueUser(AbstractUser):
     activation_code = models.CharField(max_length=40, blank=True)
     username = models.CharField(max_length=100,unique=True)
     is_blocked = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
 
 
     def save(self, *args, **kwargs):
         if self.position in ACCESS_LEVELS:
             self.access_level = ACCESS_LEVELS[self.position]
+
+        if self.position == 'administrator':
+            self.is_staff = True
+            self.is_superuser = True
+        elif self.position == 'operator':
+            self.is_staff = True
+            self.is_superuser = False
+        else:
+            self.is_staff = False
+            self.is_superuser = False
+
         super().save(*args, **kwargs)
 
     def block_user(self):
         self.is_blocked = True
         self.save()
 
-    def unblock_user(self):
-        self.is_blocked = False
-        self.save()
+
 
     objects = UserManager()
 

@@ -57,22 +57,17 @@ class ForgotPasswordCompleteAPIView(APIView):
         serializer.set_new_password()
         return Response('password have successfully changed!')
 
-class ActivationAPIView(APIView):
-    def get(self, request, activation_code):
+class ActivationApiView(APIView):
+    @staticmethod
+    def get(request, activation_code):
         try:
             user = User.objects.get(activation_code=activation_code)
             user.is_active = True
-            user.activation_code = ""
+            user.activation_code = ''
             user.save()
-            return Response(
-                {"Message": "Successfully activated."},
-                status=status.HTTP_200_OK
-            )
+            return Response({'message': 'успешно'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response(
-                {"Message": "Wrong email."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'message': 'Неверный код'}, status=status.HTTP_400_BAD_REQUEST)
 
 class DeleteAccountAPIView(APIView):
     permission_classes = [IsAuthenticated]
