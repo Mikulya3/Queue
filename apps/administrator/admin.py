@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-class QueueUserAdmin(UserAdmin):
+class Admin(UserAdmin):
     list_display = ['email', 'first_name', 'last_name', 'position', 'window_number', 'is_blocked']
     search_fields = ['email', 'first_name', 'last_name', 'position', 'window_number']
     list_filter = ['position', 'is_blocked']
@@ -16,4 +16,4 @@ class QueueUserAdmin(UserAdmin):
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
 
-admin.site.register(User, QueueUserAdmin)
+admin.site.register(Admin)

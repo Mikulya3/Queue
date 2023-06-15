@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
-    'apps.administrator'
+    # 'apps.administrator'
 
 ]
 
