@@ -13,3 +13,4 @@ djangorestframework-simplejwt
 django-crontab
 dj_database_url
 django-celery-beat
+gunicorn
