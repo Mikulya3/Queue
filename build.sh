@@ -5,4 +5,5 @@ poetry install
 python manage.py collectstatic --no-input
 python manage.py migrate
 
-python manage.py createsuperuser --username admin2 --password 1
+python manage.py createsuperuser --username <username> --password <password>
+
