@@ -254,6 +254,9 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_IMPORTS = ('apps.account.tasks',)
 
 
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'api_key': {
