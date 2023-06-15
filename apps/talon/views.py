@@ -7,6 +7,7 @@ from .serializers import TicketSerializer, OutherTalonSerializer, TicketUpdateSe
 from rest_framework.exceptions import NotFound
 from django.http import HttpResponse
 from rest_framework.views import APIView
+
 from datetime import datetime
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -14,7 +15,16 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Max
 from django.db import transaction
+
+from django.shortcuts import get_object_or_404
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db.models import Max
+from django.db import transaction
+
 from django.core.exceptions import ObjectDoesNotExist
+
+
 
 
 
@@ -260,6 +270,7 @@ class ResetTalonNumberAPIView(APIView):
         return Response({'message': 'Номера талонов были сброшены.'}, status=status.HTTP_200_OK)
 
 class CompleteTrueTicketAPIView(generics.DestroyAPIView):
+
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
 
@@ -291,6 +302,52 @@ class CompleteTrueTicketAPIView(generics.DestroyAPIView):
 
 
 class CompleteFalseTicketAPIView(generics.DestroyAPIView):
+
+    queryset = Ticket.objects.all()
+    serializer_class = TicketSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        ticket_id = kwargs['ticket_id']
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+        except Ticket.DoesNotExist:
+            return Response("Талон не найден", status=status.HTTP_404_NOT_FOUND)
+
+        if not ticket.operator:
+            return Response("Талон не обслуживается", status=status.HTTP_400_BAD_REQUEST)
+
+        operator = ticket.operator  # Получить оператора, связанного с талоном
+        ticket.delete()
+
+
+        outher_talon = OutherTalon(number=ticket.number, operator=operator)
+        outher_talon.end_time = datetime.now()  # Установите текущее время как время окончания обслуживания
+        outher_talon.created_at = ticket.created_at  # Присвоить значение created_at из объекта Ticket
+        outher_talon.start_time = ticket.created_at  # Установите значение start_time из объекта Ticket
+        outher_talon.is_completed = False
+        outher_talon.save()
+
+
+
+        ticket.delete()
+        logger.info(f'Ticket {ticket_id} successfully deleted')
+
+
+        outher_talon = OutherTalon(number=ticket.number, operator=operator)
+        outher_talon.end_time = datetime.now()  # Установите текущее время как время окончания обслуживания
+        outher_talon.created_at = ticket.created_at  # Присвоить значение created_at из объекта Ticket
+        outher_talon.start_time = ticket.created_at  # Установите значение start_time из объекта Ticket
+        outher_talon.is_completed = True
+        outher_talon.save()
+
+
+
+
+        return Response("Талон успешно завершен")
+
+
+
+class CompleteFalseTicketAPIView(generics.DestroyAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
 
@@ -316,11 +373,8 @@ class CompleteFalseTicketAPIView(generics.DestroyAPIView):
 
 
 
-        ticket.delete()
-        logger.info(f'Ticket {ticket_id} successfully deleted')
-
-
         return Response("Талон успешно завершен")
+
 
 
 class OutherTalonListAPIView(APIView):
