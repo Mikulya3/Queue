@@ -17,7 +17,7 @@ class Ticket(models.Model):
     can_modify_queue_list = models.BooleanField(default=False)
     can_create_tickets = models.BooleanField(default=False)
     can_close_tickets = models.BooleanField(default=False)
-\
+
     class Meta:
         ordering = ['id']
 
@@ -28,8 +28,7 @@ class Ticket(models.Model):
         logger.info(f'Ticket {self.number} saved')
         super().save(*args, **kwargs)
 
-    def grant_permissions(self, operator, can_call_out_of_turn=False, can_modify_queue_list=False,
-                          can_create_tickets=False, can_close_tickets=False):
+    def grant_permissions(self, operator, can_call_out_of_turn=False, can_modify_queue_list=False,can_create_tickets=False, can_close_tickets=False):
         self.operator = operator
         self.can_call_out_of_turn = can_call_out_of_turn
         self.can_modify_queue_list = can_modify_queue_list

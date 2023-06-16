@@ -17,7 +17,7 @@ ACCESS_LEVELS = {
         'manager': 'limited_access'
     }
 
-class QueueUser(AbstractUser,PermissionsMixin):
+class QueueUser(AbstractUser):
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     Last_name = models.CharField(_("last name"), max_length=150, blank=True)
     middle_name = models.CharField(_("middle_name"), max_length=150, blank=True)
@@ -32,21 +32,6 @@ class QueueUser(AbstractUser,PermissionsMixin):
     is_blocked = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
 
-    def save(self, *args, **kwargs):
-        if self.position in ACCESS_LEVELS:
-            self.access_level = ACCESS_LEVELS[self.position]
-
-        if self.position == 'administrator':
-            self.is_staff = True
-            self.is_superuser = True
-        elif self.position == 'operator':
-            self.is_staff = True
-            self.is_superuser = False
-        else:
-            self.is_staff = False
-            self.is_superuser = False
-
-        super().save(*args, **kwargs)
 
     def block_user(self):
         self.is_blocked = True
@@ -57,10 +42,10 @@ class QueueUser(AbstractUser,PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS =[]
 
     def __str__(self):
-        return self.email
+        return self.username
 
     def create_activation_code(self):
         import uuid
