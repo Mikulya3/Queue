@@ -16,8 +16,12 @@ from django.db.models import Avg, F
 from apps.queue.tasks import send_notification_email
 import csv
 from django.http import HttpResponse
-from twilio.rest import Client
+#from twilio.rest import Client
 from django.db.models import Count
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import get_user_model
+from datetime import time
+
 
 @api_view(['POST'])
 def create_queue(request):
@@ -42,7 +46,12 @@ def update_queue(request, queue_id):
         queue = Queue.objects.get(id=queue_id)
         serializer = QueueSerializer(queue, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            max_waiting_time = serializer.validated_data.get('max_waiting_time')
+            if max_waiting_time is not None:
+                queue.max_waiting_time = max_waiting_time
+            # Остальная логика сохранения обновленных данных
+            queue.save()
+            serializer = QueueSerializer(queue)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Queue.DoesNotExist:
@@ -66,9 +75,22 @@ def get_queue(request, queue_id):
 @api_view(['GET'])
 def get_tickets_in_queue(request, queue_id):
     try:
+        # Получите все обычные билеты в очереди
         tickets = Ticket.objects.filter(queue_id=queue_id)
-        serializer = TicketSerializer(tickets, many=True)
-        return Response(serializer.data)
+
+        # Получите все зарезервированные билеты в очереди
+        reserved_tickets = ReservedTicket.objects.filter(queue_id=queue_id)
+
+        # Сериализация обычных билетов
+        ticket_serializer = TicketSerializer(tickets, many=True)
+
+        # Сериализация зарезервированных билетов
+        reserved_ticket_serializer = ReservedTicketSerializer(reserved_tickets, many=True)
+
+        # Объединение сериализованных данных обычных и зарезервированных билетов
+        serialized_data = ticket_serializer.data + reserved_ticket_serializer.data
+
+        return Response(serialized_data)
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -91,10 +113,15 @@ def get_queue_status(request, queue_id):
 def generate_ticket_number():
     return str(randint(1000, 9999))
 
+
 @api_view(['POST'])
 def generate_ticket(request, queue_id):
     try:
         queue = Queue.objects.get(id=queue_id)
+
+        if queue.is_paused:
+            return Response({'message': 'Cannot generate ticket. Queue is paused.'}, status=status.HTTP_400_BAD_REQUEST)
+
         ticket_number = generate_ticket_number()
         expiration_time = datetime.now() + timedelta(minutes=30)  # Истечение через 30 минут
 
@@ -113,6 +140,10 @@ def generate_ticket(request, queue_id):
             wait_time=wait_time,  # Присваивание времени ожидания
         )
         serializer = TicketSerializer(ticket)
+
+        # Создание записи в истории билета
+        history = TicketHistory.objects.create(ticket=ticket, action='Generated', timestamp=datetime.now())
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
@@ -126,6 +157,10 @@ def call_next_ticket(request, queue_id):
             next_ticket.status = 'called'
             next_ticket.save()
             serializer = TicketSerializer(next_ticket)
+
+            # Создание записи в истории билета
+            history = TicketHistory.objects.create(ticket=next_ticket, action='Called', timestamp=datetime.now())
+
             return Response(serializer.data)
         return Response({'message': 'No more tickets in the queue'}, status=status.HTTP_404_NOT_FOUND)
     except Queue.DoesNotExist:
@@ -145,6 +180,10 @@ def move_ticket_to_queue(request, ticket_id, new_queue_id):
     try:
         ticket = Ticket.objects.get(id=ticket_id)
         new_queue = Queue.objects.get(id=new_queue_id)
+
+        # Создание записи в истории билета
+        history = TicketHistory.objects.create(ticket=ticket, action='Moved to Queue', timestamp=datetime.now())
+
         ticket.queue = new_queue
         ticket.branch = new_queue.branch
         ticket.save()
@@ -210,16 +249,14 @@ def get_branch_info(request, queue_id):
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 def calculate_waiting_time_statistics(queue):
-    # Получение списка билетов, обслуженных в очереди
     served_tickets = Ticket.objects.filter(queue=queue, status='served')
-
-    # Расчет статистики по времени ожидания
     wait_time_data = served_tickets.values_list('wait_time', flat=True)
-    min_wait_time = min(wait_time_data)
-    max_wait_time = max(wait_time_data)
-    avg_wait_time = sum(wait_time_data) / len(wait_time_data)
 
-    # Формирование словаря со статистическими данными
+    wait_time_data_cleaned = [t.total_seconds() for t in wait_time_data if t is not None]
+    min_wait_time = min(wait_time_data_cleaned) if wait_time_data_cleaned else None
+    max_wait_time = max(wait_time_data_cleaned) if wait_time_data_cleaned else None
+    avg_wait_time = sum(wait_time_data_cleaned) / len(wait_time_data_cleaned) if wait_time_data_cleaned else None
+
     statistics = {
         'min_wait_time': min_wait_time,
         'max_wait_time': max_wait_time,
@@ -247,7 +284,7 @@ def send_ticket_notification(request, ticket_id):
         if ticket.client is not None and ticket.client.email:
             recipient_email = ticket.client.email
             subject = 'Your ticket status has been updated'
-            message = f'Your ticket {ticket.ticket_number} status has been changed to {ticket.status}'
+            message = f'Your ticket number is: {ticket.ticket_number}'
             send_notification_email.delay(recipient_email, subject, message)
             return Response({'message': 'Notification sent'})
         else:
@@ -328,13 +365,28 @@ def set_max_ticket_limit(request, queue_id):
 def reserve_ticket(request, queue_id, client_id):
     try:
         queue = Queue.objects.get(id=queue_id)
-        client = Client.objects.get(id=client_id)
-        ticket_number = generate_ticket_number()
-        reserved_ticket = ReservedTicket.objects.create(queue=queue, client=client, ticket_number=ticket_number)
-        serializer = ReservedTicketSerializer(reserved_ticket)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    except (Queue.DoesNotExist, Client.DoesNotExist):
+    except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        client = Client.objects.get(id=client_id)
+    except ObjectDoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    ticket_number = generate_ticket_number()
+
+    # Получение значения service_time из запроса
+    service_time = request.data.get('service_time')
+
+    reserved_ticket = ReservedTicket.objects.create(
+        queue=queue,
+        client=client,
+        ticket_number=ticket_number,
+        service_time=service_time  # Использование введенного пользователем значения
+    )
+
+    serializer = ReservedTicketSerializer(reserved_ticket)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 def get_ticket_remaining_time(request, ticket_id):
@@ -434,17 +486,34 @@ def calculate_predicted_waiting_time(request, queue_id):
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+User = get_user_model()
+
 @api_view(['PUT'])
 def update_customer_info(request, ticket_id):
     try:
         ticket = Ticket.objects.get(id=ticket_id)
         ticket.customer_name = request.data.get('customer_name')
         ticket.contact_info = request.data.get('contact_info')
+
+        client_id = request.data.get('client_id')
+        if client_id:
+            try:
+                client = User.objects.get(id=client_id)
+                if isinstance(client, Client):
+                    client.phone_number = request.data.get('phone_number')
+                    client.address = request.data.get('address')
+                    client.save()
+                    ticket.client = client
+                else:
+                    return Response({'error': 'Invalid client ID'}, status=status.HTTP_400_BAD_REQUEST)
+            except ObjectDoesNotExist:
+                return Response({'error': 'Invalid client ID'}, status=status.HTTP_400_BAD_REQUEST)
+
         ticket.save()
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
-    except Ticket.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    except ObjectDoesNotExist:
+        return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 def pause_queue(request, queue_id):
@@ -471,14 +540,49 @@ def resume_queue(request, queue_id):
 @api_view(['GET'])
 def get_most_loaded_queues(request):
     queues = Queue.objects.annotate(ticket_count=Count('ticket')).order_by('-ticket_count')
-    serializer = QueueSerializer(queues, many=True)
-    return Response(serializer.data)
+    data = []
+    for queue in queues:
+        ticket_count = Ticket.objects.filter(queue=queue).count()
+        queue_data = {
+            'id': queue.id,
+            'name': queue.name,
+            'created_at': queue.created_at,
+            'queue_type': queue.queue_type,
+            'priority': queue.priority,
+            'queue_length': ticket_count,
+            'standard_service_time': queue.standard_service_time,
+            'priority_service_time': queue.priority_service_time,
+            'vip_service_time': queue.vip_service_time,
+            'max_limit': queue.max_limit,
+            'is_paused': queue.is_paused,
+            'branch': queue.branch.id,
+        }
+        data.append(queue_data)
+    return Response(data)
 
 @api_view(['GET'])
 def get_least_loaded_queues(request):
     queues = Queue.objects.annotate(ticket_count=Count('ticket')).order_by('ticket_count')
-    serializer = QueueSerializer(queues, many=True)
-    return Response(serializer.data)
+    data = []
+    for queue in queues:
+        ticket_count = Ticket.objects.filter(queue=queue).count()
+        queue_data = {
+            'id': queue.id,
+            'name': queue.name,
+            'created_at': queue.created_at,
+            'queue_type': queue.queue_type,
+            'priority': queue.priority,
+            'queue_length': ticket_count,
+            'standard_service_time': queue.standard_service_time,
+            'priority_service_time': queue.priority_service_time,
+            'vip_service_time': queue.vip_service_time,
+            'max_limit': queue.max_limit,
+            'is_paused': queue.is_paused,
+            'branch': queue.branch.id,
+        }
+        data.append(queue_data)
+    return Response(data)
+
 
 @api_view(['PUT'])
 def set_max_waiting_time(request, queue_id):
@@ -532,4 +636,57 @@ def send_sms_notification(request, ticket_id):
 
         return Response({'message': 'Notification sent'})
     except Ticket.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def generate_ticket_send_mail(request, queue_id):
+    try:
+        queue = Queue.objects.get(id=queue_id)
+
+        if queue.is_paused:
+            return Response({'message': 'Cannot generate ticket. Queue is paused.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Получение клиента
+        client_email = request.data.get('client_email')
+        if not client_email:
+            return Response({'message': 'Client email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            client = Client.objects.get(email=client_email)
+        except Client.DoesNotExist:
+            return Response({'message': 'Client not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        ticket_number = generate_ticket_number()
+        expiration_time = datetime.now() + timedelta(minutes=30)  # Истечение через 30 минут
+
+
+
+        wait_time = None  # Инициализация времени ожидания
+
+
+
+        # Расчет времени ожидания в зависимости от текущего состояния очереди и логики вашего приложения
+        # wait_time = ...
+
+        ticket = Ticket.objects.create(
+            queue=queue,
+            branch=queue.branch,
+            ticket_number=ticket_number,
+            created_at=datetime.now(),
+            expiration_time=expiration_time,
+            status='waiting',
+            wait_time=wait_time,  # Присваивание времени ожидания
+            client=client,  # Присваивание клиента талону
+        )
+        serializer = TicketSerializer(ticket)
+
+        # Создание записи в истории билета
+        history = TicketHistory.objects.create(ticket=ticket, action='Generated', timestamp=datetime.now())
+
+        # Отправка номера талона клиенту
+        send_notification_email.delay(client.email, ticket.ticket_number)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)

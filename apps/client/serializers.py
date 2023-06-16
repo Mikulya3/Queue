@@ -3,6 +3,7 @@ from apps.client.models import ReservedTicket, Client, Review
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -23,6 +24,9 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ReservedTicketSerializer(serializers.ModelSerializer):
+    service_time = serializers.TimeField(format='%H:%M:%S')
+
     class Meta:
         model = ReservedTicket
         fields = '__all__'
+

@@ -39,4 +39,7 @@ urlpatterns = [
     path('queues/<int:queue_id>/current-waiting-time/', get_current_waiting_time, name='get_current_waiting_time'),
     path('tickets/<int:ticket_id>/history/', get_ticket_history, name='get_ticket_history'),
     path('tickets/<int:ticket_id>/review/', submit_review, name='submit_review'),
+    path('queues/<int:queue_id>/service-time/statistics/', view_waiting_time_statistics, name='view_waiting_time_statistics'),
+    path('queues/<int:queue_id>/reserve-ticket/<int:client_id>/', reserve_ticket, name='reserve-ticket'),
+    path('generate_ticket_send_mail/<int:queue_id>/', generate_ticket_send_mail, name='generate_ticket'),
 ]

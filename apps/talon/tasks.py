@@ -18,9 +18,8 @@ def call_customer():
             # Оператор уже обслуживает талон
             continue
 
-        try:
-            ticket = Ticket.objects.filter(operator=None).order_by('created_at').first()
-        except Ticket.DoesNotExist:
+        ticket = Ticket.objects.filter(operator=None).order_by('created_at').first()
+        if ticket is None:
             # Талоны в очереди отсутствуют
             break
 
@@ -32,5 +31,6 @@ def call_customer():
     if call_customer_task and not call_customer_task.enabled:
         # Задача отключена, прерываем выполнение
         return
+
 
 

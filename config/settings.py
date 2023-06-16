@@ -325,6 +325,7 @@ LOGGING = {
              'handlers': ['for_registrator']
          }
      }
+
  }
 
 

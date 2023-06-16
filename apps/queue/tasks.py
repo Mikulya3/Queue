@@ -1,10 +1,21 @@
 from celery import shared_task
 from django.core.mail import send_mail
 from apps.queue.models import Queue, Ticket
+from config.celery import app
 
-@shared_task
-def send_notification_email(recipient_email, subject, message):
-    send_mail(subject, message, 'noreply@yourdomain.com', [recipient_email])
+@app.task
+def send_notification_email(client_email, ticket_number):
+    print(f"Sending email to {client_email} with ticket number {ticket_number}")
+    send_mail(
+        'Ваш номер талона',
+        f'Ваш номер талона: {ticket_number}',
+        'evelbrus2@gmail.com',
+        [client_email],
+        fail_silently=True,
+    )
+
+
+
 
 @shared_task
 def call_next_ticket(queue_id):

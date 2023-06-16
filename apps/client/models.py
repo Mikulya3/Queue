@@ -1,12 +1,14 @@
 from django.db import models
+from django.conf import settings
 #from django.contrib.auth.models import User
 from apps.bank.models import Branch
 from django.core.validators import MinValueValidator, MaxValueValidator
 #from django.conf import settings
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager
+
 
 class Client(AbstractUser):
-    username = models.CharField(max_length=150, default='ваше_значение_по_умолчанию')
+
 
     # Дополнительные поля для модели Client
     phone_number = models.CharField(max_length=20)
@@ -18,10 +20,12 @@ class Client(AbstractUser):
     # Обратная связь с моделью Permission
     user_permissions = models.ManyToManyField(Permission, related_name='client_users', blank=True)
 
+    objects = UserManager()
+
     # Дополнительные методы или поведение модели Client
 
     def __str__(self):
-        return self.user.username
+        return self.username
 
 class ReservedTicket(models.Model):
     queue = models.ForeignKey('queue.Queue', on_delete=models.CASCADE)  # Замена импорта на строковое имя модели
@@ -40,3 +44,5 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review for Branch {self.branch.name}"
+
+

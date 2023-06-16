@@ -28,6 +28,8 @@ class Queue(models.Model):
     priority_service_time = models.DurationField()
     vip_service_time = models.DurationField()
     max_limit = models.IntegerField(default=1000)
+    is_paused = models.BooleanField(default=False)  # Добавлено поле is_paused
+    max_waiting_time = models.PositiveIntegerField(default=0)
 
     def get_service_time(self, ticket_type):
         if ticket_type == TicketType.STANDARD:
@@ -39,6 +41,14 @@ class Queue(models.Model):
         else:
             return self.standard_service_time  # Значение по умолчанию
 
+    def calculate_current_waiting_time(self):
+        # Логика расчета текущего времени ожидания в очереди
+        now = timezone.now()
+        tickets = Ticket.objects.filter(queue=self, status='waiting')
+        total_waiting_time = sum((now - ticket.created_at).total_seconds() for ticket in tickets)
+        average_waiting_time = total_waiting_time / tickets.count() if tickets.count() > 0 else 0
+        return average_waiting_time
+
     def __str__(self):
         return self.name
 
@@ -48,6 +58,7 @@ class ReservedTicket(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='reserved_tickets')
     ticket_number = models.CharField(max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
+    service_time = models.TimeField()
 
     def __str__(self):
         return self.ticket_number
@@ -69,6 +80,7 @@ class Ticket(models.Model):
     service_time = models.DurationField(default=timedelta(minutes=0))
     wait_time = models.DurationField(blank=True, null=True)
 
+
     def is_ticket_active(self):
         return self.expiration_time >= timezone.now()
 
@@ -88,6 +100,7 @@ class TicketHistory(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
     operation = models.CharField(max_length=100)
     timestamp = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=100)
 
     def __str__(self):
         return f"Ticket: {self.ticket.ticket_number}, Operation: {self.operation}"
