@@ -20,7 +20,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     position = serializers.ChoiceField(choices=POSITION_CHOICES)
     class Meta:
         model = User
-        fields = ['last_name', 'first_name', 'email', 'password', 'password_confirm','username','position']
+        fields = ['last_name', 'first_name', 'email', 'password', 'password_confirm','username','position','window_number']
 
     def validate(self, attrs):
         p1 = attrs.get('password')

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'django_crontab',
 
     # lib
     'rest_framework',
@@ -65,6 +66,10 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
+    'apps.bank',
+    'apps.equipment',
+    'apps.queue',
+    'apps.client',
     # 'apps.administrator'
 
 ]
@@ -282,45 +287,45 @@ logger.add(                                            # настройки logu
 )
 
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'formatters': {
-#         'config': {
-#             'format': '{levelname} --{asctime} -- {module} --{message}',
-#             'style': '{'
-#         }
-#     },
-#     'handlers': {
-#         'my_console': {
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'config'
-#         },
-#         'file': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'app.log',
-#             'formatter': 'config',
-#         },
-#         'for_registrator': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'apps.registrator.log',
-#             'formatter': 'config',
-#         },
-#         'for_talon': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'apps.talon.log',
-#             'formatter': 'config',
-#         },
-#     },
-#     'loggers': {
-#         '': {
-#             'handlers': ['my_console', 'file']
-#         },
-#         'apps.registrator.views': {
-#             'handlers': ['for_registrator']
-#         }
-#     }
-# }
+LOGGING = {
+     'version': 1,
+     'disable_existing_loggers': False,
+     'formatters': {
+         'config': {
+             'format': '{levelname} --{asctime} -- {module} --{message}',
+             'style': '{'
+         }
+     },
+     'handlers': {
+         'my_console': {
+             'class': 'logging.StreamHandler',
+             'formatter': 'config'
+         },
+         'file': {
+             'class': 'logging.FileHandler',
+             'filename': 'app.log',
+             'formatter': 'config',
+         },
+         'for_registrator': {
+             'class': 'logging.FileHandler',
+             'filename': 'apps.registrator.log',
+             'formatter': 'config',
+         },
+         'for_talon': {
+             'class': 'logging.FileHandler',
+             'filename': 'apps.talon.log',
+             'formatter': 'config',
+         },
+     },
+     'loggers': {
+         '': {
+             'handlers': ['my_console', 'file']
+         },
+         'apps.registrator.views': {
+             'handlers': ['for_registrator']
+         }
+     }
+ }
 
 
 

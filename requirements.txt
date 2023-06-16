@@ -13,12 +13,9 @@ redis
 djangorestframework-simplejwt
 django-crontab
 dj_database_url
-<<<<<<< HEAD
 loguru
-
-
-=======
 django-celery-beat
 gunicorn
-loguru
->>>>>>> 35e43da2e05277bd20036ad759dd20fa071f2824
+pytz
+twilio
+

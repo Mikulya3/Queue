@@ -30,24 +30,8 @@ class QueueUser(AbstractUser,PermissionsMixin):
     activation_code = models.CharField(max_length=40, blank=True)
     username = models.CharField(max_length=100,unique=True)
     is_blocked = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
-
-    def save(self, *args, **kwargs):
-        if self.position in ACCESS_LEVELS:
-            self.access_level = ACCESS_LEVELS[self.position]
-
-        if self.position == 'administrator':
-            self.is_staff = True
-            self.is_superuser = True
-        elif self.position == 'operator':
-            self.is_staff = True
-            self.is_superuser = False
-        else:
-            self.is_staff = False
-            self.is_superuser = False
-
-        super().save(*args, **kwargs)
 
     def block_user(self):
         self.is_blocked = True
