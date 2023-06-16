@@ -1,4 +1,3 @@
-pip==23.1.2
 django
 psycopg2-binary
 djangorestframework
@@ -18,4 +17,5 @@ django-celery-beat
 gunicorn
 pytz
 twilio
+loguru
 
