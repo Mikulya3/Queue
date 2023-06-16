@@ -5,6 +5,7 @@ from apps.bank.models import Branch
 from apps.operators.models import Operator
 from datetime import timedelta, datetime
 
+
 class QueueType(models.TextChoices):
     STANDARD = 'standard', 'Standard Queue'
     PRIORITY = 'priority', 'Priority Queue'
@@ -67,7 +68,7 @@ class ReservedTicket(models.Model):
 class Ticket(models.Model):
     queue = models.ForeignKey(Queue, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
-    operator = models.OneToOneField(Operator, related_name='talon_tickets', on_delete=models.SET_NULL, null=True)
+    operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     ticket_number = models.CharField(max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
     expiration_time = models.DateTimeField()
@@ -79,6 +80,7 @@ class Ticket(models.Model):
     priority = models.CharField(max_length=10, choices=TicketType.choices, default=TicketType.STANDARD)
     service_time = models.DurationField(default=timedelta(minutes=0))
     wait_time = models.DurationField(blank=True, null=True)
+
 
 
     def is_ticket_active(self):

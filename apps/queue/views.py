@@ -690,3 +690,88 @@ def generate_ticket_send_mail(request, queue_id):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def call_ticket_to_operator(request, ticket_id, operator_id):
+    try:
+        ticket = Ticket.objects.get(id=ticket_id)
+        operator = Operator.objects.get(id=operator_id)
+
+        # Проверяем, свободен ли оператор
+        if not operator.is_available:
+            return Response({'message': 'Operator is not available'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Проверяем, принадлежит ли билет к очереди оператора
+        if ticket.queue.branch != operator.branch:
+            return Response({'message': 'Ticket does not belong to operator\'s branch'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Проверяем, находится ли билет в ожидании
+        if ticket.status != 'waiting':
+            return Response({'message': 'Ticket is not in waiting status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Вызываем билет к оператору
+        ticket.status = 'called'
+        ticket.operator = operator
+        ticket.save()
+
+        serializer = TicketSerializer(ticket)
+        return Response(serializer.data)
+
+    except (Ticket.DoesNotExist, Operator.DoesNotExist):
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def call_next_available_operator(request, queue_id):
+    try:
+        from apps.operators.models import Operator
+        queue = Queue.objects.get(id=queue_id)
+        next_ticket = Ticket.objects.filter(queue=queue, status='waiting').order_by('created_at').first()
+
+        if next_ticket:
+            operator = Operator.objects.filter(is_available=True).exclude(id__in=Ticket.objects.filter(status='called').values('operator')).first()
+
+            if operator:
+                next_ticket.status = 'called'
+                next_ticket.operator = operator
+                next_ticket.save()
+
+                serializer = TicketSerializer(next_ticket)
+                return Response(serializer.data)
+
+            return Response({'message': 'All operators are currently busy'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'message': 'No more tickets in the queue'}, status=status.HTTP_404_NOT_FOUND)
+
+    except Queue.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def get_operators_status(request):
+    from apps.queue.models import Ticket
+    operators = Operator.objects.all()
+    operator_data = []
+
+    for operator in operators:
+        current_ticket = Ticket.objects.filter(operator=operator, status='called').first()
+        if current_ticket is not None:
+            ticket_status = 'Serving ticket'
+            ticket_number = current_ticket.ticket_number
+        else:
+            ticket_status = 'Available'
+            ticket_number = None
+
+        operator_info = {
+            'operator_id': operator.id,
+            'name': operator.name.username,
+            'is_available': operator.is_available,
+            'branch': operator.branch.name,
+            'ticket_status': ticket_status,
+            'ticket_number': ticket_number,
+        }
+        operator_data.append(operator_info)
+
+    return Response(operator_data)

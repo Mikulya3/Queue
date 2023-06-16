@@ -42,4 +42,7 @@ urlpatterns = [
     path('queues/<int:queue_id>/service-time/statistics/', view_waiting_time_statistics, name='view_waiting_time_statistics'),
     path('queues/<int:queue_id>/reserve-ticket/<int:client_id>/', reserve_ticket, name='reserve-ticket'),
     path('generate_ticket_send_mail/<int:queue_id>/', generate_ticket_send_mail, name='generate_ticket'),
+    path('tickets/<int:ticket_id>/call-to-operator/<int:operator_id>/', call_ticket_to_operator, name='call_ticket_to_operator'),
+    path('tickets/<int:queue_id>/call-next-available-operator/', call_next_available_operator, name='call_next_available_operator'),
+    path('operators/status/', get_operators_status, name='operators_status'),
 ]
