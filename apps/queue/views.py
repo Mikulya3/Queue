@@ -8,7 +8,7 @@ from apps.operators.models import Operator
 from apps.queue.serializers import QueueSerializer, TicketSerializer, TicketHistorySerializer
 from apps.bank.serializers import BranchSerializer
 from apps.client.serializers import ReviewSerializer, ReservedTicketSerializer
-from apps.operators.serializers import OperatorSerializer
+from apps.queue.serializers import OperatorSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
 from random import randint
@@ -21,6 +21,8 @@ from django.db.models import Count
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 from datetime import time
+from django.db.models import Prefetch
+from apps.queue.tasks import call_next_available_operator_auto_task
 
 
 @api_view(['POST'])
@@ -211,6 +213,19 @@ def get_waiting_tickets(request):
     tickets = Ticket.objects.filter(status='waiting')
     serializer = TicketSerializer(tickets, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def get_operators_with_called_tickets(request):
+    # Получаем операторов, которые обслуживают билеты со статусом 'called'
+    operators = Operator.objects.filter(tickets__status='called').distinct()
+
+    # Сериализуем данные
+    serializer = OperatorSerializer(operators, many=True)
+
+    # Возвращаем ответ
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 def get_served_tickets(request):
@@ -716,6 +731,10 @@ def call_ticket_to_operator(request, ticket_id, operator_id):
         ticket.operator = operator
         ticket.save()
 
+        # Обновляем статус доступности оператора
+        operator.is_available = False
+        operator.save()
+
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
 
@@ -738,10 +757,32 @@ def call_next_available_operator(request, queue_id):
                 next_ticket.operator = operator
                 next_ticket.save()
 
-                serializer = TicketSerializer(next_ticket)
-                return Response(serializer.data)
+                # Обновляем статус доступности оператора
+                operator.is_available = False
+                operator.save()
 
-            return Response({'message': 'All operators are currently busy'}, status=status.HTTP_404_NOT_FOUND)
+                serializer = TicketSerializer(next_ticket)
+
+                # Вычисляем количество операторов и сколько из них заняты
+                total_operators = Operator.objects.count()
+                busy_operators = Operator.objects.filter(is_available=False).count()
+
+                # Добавляем эту информацию в ответ
+                response_data = serializer.data
+                response_data['total_operators'] = total_operators
+                response_data['busy_operators'] = busy_operators
+
+                return Response(response_data)
+
+            # Вычисляем количество операторов и сколько из них заняты
+            total_operators = Operator.objects.count()
+            busy_operators = Operator.objects.filter(is_available=False).count()
+
+            return Response({
+                'message': 'All operators are currently busy',
+                'total_operators': total_operators,
+                'busy_operators': busy_operators
+            }, status=status.HTTP_404_NOT_FOUND)
 
         return Response({'message': 'No more tickets in the queue'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -775,3 +816,95 @@ def get_operators_status(request):
         operator_data.append(operator_info)
 
     return Response(operator_data)
+
+@api_view(['GET'])
+def get_called_tickets_in_queue(request, queue_id):
+    try:
+        # Получите все обычные билеты в очереди со статусом "called"
+        tickets = Ticket.objects.filter(queue_id=queue_id, status='called')
+
+        # Сериализация обычных билетов
+        ticket_serializer = TicketSerializer(tickets, many=True)
+
+        # Возвращаем только обычные билеты со статусом "called"
+        return Response(ticket_serializer.data)
+    except Queue.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def complete_ticket_service(request, ticket_id):
+    try:
+        # Получаем талон по ID
+        ticket = Ticket.objects.get(id=ticket_id)
+
+        # Если талон уже обслужен, возвращаем сообщение об ошибке
+        if ticket.status != 'called':
+            return Response({'message': 'This ticket is not being served currently'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Обновляем статус талона
+        ticket.status = 'served'
+        ticket.save()
+
+        # Обновляем статус доступности оператора
+        operator = ticket.operator
+        operator.is_available = True
+
+        if ticket.status == 'served':
+            ticket.served_at = timezone.now()  # Установка текущего времени в served_at
+
+        operator.save()
+
+        return Response({'message': 'Ticket service completed successfully'}, status=status.HTTP_200_OK)
+
+    except Ticket.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def call_next_available_operator_auto(request, queue_id):
+    try:
+        queue = Queue.objects.get(id=queue_id)
+        next_ticket = Ticket.objects.filter(queue=queue, status='waiting').order_by('created_at').first()
+
+        if next_ticket:
+            operator = Operator.objects.filter(is_available=True).exclude(id__in=Ticket.objects.filter(status='called').values('operator')).first()
+
+            if operator:
+                next_ticket.status = 'called'
+                next_ticket.operator = operator
+                next_ticket.save()
+
+                # Обновляем статус доступности оператора
+                operator.is_available = False
+                operator.save()
+
+                # Вычисляем количество операторов и сколько из них заняты
+                total_operators = Operator.objects.count()
+                busy_operators = Operator.objects.filter(is_available=False).count()
+
+                # Создаем задачу для вызова следующего доступного оператора через определенное время
+                interval = timedelta(seconds=10)
+                call_next_available_operator_auto_task.apply_async((queue_id,), countdown=interval.total_seconds())
+
+                # Возвращаем данные о билете
+                serializer = TicketSerializer(next_ticket)
+                response_data = serializer.data
+                response_data['total_operators'] = total_operators
+                response_data['busy_operators'] = busy_operators
+                return Response(response_data)
+
+            # Вычисляем количество операторов и сколько из них заняты
+            total_operators = Operator.objects.count()
+            busy_operators = Operator.objects.filter(is_available=False).count()
+
+            return Response({
+                'message': 'All operators are currently busy',
+                'total_operators': total_operators,
+                'busy_operators': busy_operators
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'message': 'No more tickets in the queue'}, status=status.HTTP_404_NOT_FOUND)
+
+    except Queue.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)

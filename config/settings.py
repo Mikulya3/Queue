@@ -245,10 +245,11 @@ BROKER_URL = 'redis://127.0.0.1:6379/0'
 
 
 RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # URL для хранения результатов задач
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
-    'call_customer_task': {
-        'task': 'apps.talon.tasks.call_customer',
-        'schedule': 10.0,  # Выполнение каждые 10 секунд
+    'call_next_available_operator_auto_task': {
+        'task': 'apps.queue.tasks.call_next_available_operator_auto_task',
+        'schedule': timedelta(seconds=10),
     },
 }
 

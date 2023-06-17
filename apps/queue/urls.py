@@ -45,4 +45,9 @@ urlpatterns = [
     path('tickets/<int:ticket_id>/call-to-operator/<int:operator_id>/', call_ticket_to_operator, name='call_ticket_to_operator'),
     path('tickets/<int:queue_id>/call-next-available-operator/', call_next_available_operator, name='call_next_available_operator'),
     path('operators/status/', get_operators_status, name='operators_status'),
+    path('operators/called/', get_operators_with_called_tickets, name='operators-with-called-tickets'),
+    path('queue/<int:queue_id>/called_tickets/', get_called_tickets_in_queue, name='called_tickets'),
+    path('tickets/<int:ticket_id>/complete/', complete_ticket_service, name='complete_ticket_service'),
+    path('tickets_auto/<int:queue_id>/call-next-available-operator/', call_next_available_operator_auto, name='call_next_available_operator'),
+
 ]
