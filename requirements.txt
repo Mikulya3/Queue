@@ -12,6 +12,10 @@ redis
 djangorestframework-simplejwt
 django-crontab
 dj_database_url
+loguru
 django-celery-beat
 gunicorn
+pytz
+twilio
 loguru
+

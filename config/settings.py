@@ -47,6 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+<<<<<<< HEAD
+=======
+    'corsheaders',
+    'django_crontab',
+>>>>>>> ab43b1fe5b8efee48a8f6060d4dfd240102951df
 
     # lib
     'rest_framework',
@@ -61,6 +66,10 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.operators',
     'apps.talon',
+    'apps.bank',
+    'apps.equipment',
+    'apps.queue',
+    'apps.client',
     # 'apps.administrator'
 
 ]
@@ -211,10 +220,11 @@ BROKER_URL = 'redis://127.0.0.1:6379/0'
 
 
 RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # URL для хранения результатов задач
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
-    'call_customer_task': {
-        'task': 'apps.talon.tasks.call_customer',
-        'schedule': 10.0,  # Выполнение каждые 10 секунд
+    'call_next_available_operator_auto_task': {
+        'task': 'apps.queue.tasks.call_next_available_operator_auto_task',
+        'schedule': timedelta(seconds=10),
     },
 }
 
@@ -250,45 +260,46 @@ logger.add(                                            # настройки logu
 )
 
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'formatters': {
-#         'config': {
-#             'format': '{levelname} --{asctime} -- {module} --{message}',
-#             'style': '{'
-#         }
-#     },
-#     'handlers': {
-#         'my_console': {
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'config'
-#         },
-#         'file': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'app.log',
-#             'formatter': 'config',
-#         },
-#         'for_registrator': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'apps.registrator.log',
-#             'formatter': 'config',
-#         },
-#         'for_talon': {
-#             'class': 'logging.FileHandler',
-#             'filename': 'apps.talon.log',
-#             'formatter': 'config',
-#         },
-#     },
-#     'loggers': {
-#         '': {
-#             'handlers': ['my_console', 'file']
-#         },
-#         'apps.registrator.views': {
-#             'handlers': ['for_registrator']
-#         }
-#     }
-# }
+LOGGING = {
+     'version': 1,
+     'disable_existing_loggers': False,
+     'formatters': {
+         'config': {
+             'format': '{levelname} --{asctime} -- {module} --{message}',
+             'style': '{'
+         }
+     },
+     'handlers': {
+         'my_console': {
+             'class': 'logging.StreamHandler',
+             'formatter': 'config'
+         },
+         'file': {
+             'class': 'logging.FileHandler',
+             'filename': 'app.log',
+             'formatter': 'config',
+         },
+         'for_registrator': {
+             'class': 'logging.FileHandler',
+             'filename': 'apps.registrator.log',
+             'formatter': 'config',
+         },
+         'for_talon': {
+             'class': 'logging.FileHandler',
+             'filename': 'apps.talon.log',
+             'formatter': 'config',
+         },
+     },
+     'loggers': {
+         '': {
+             'handlers': ['my_console', 'file']
+         },
+         'apps.registrator.views': {
+             'handlers': ['for_registrator']
+         }
+     }
+
+ }
 
 
 

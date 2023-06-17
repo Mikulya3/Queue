@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.talon.models import Ticket, OutherTalon, CallCustomerTask, TicketArchive
-from apps.operators.serializers import OperatorSerializer
+from apps.queue.serializers import OperatorSerializer
 import re
 from django.utils import timezone
 
