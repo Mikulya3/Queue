@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'dj_database_url',
     'django_celery_beat',
     'corsheaders',
+    'import_export',
 
     # apps
     'apps.account',
@@ -268,48 +269,6 @@ logger.add(
     retention='15 days',
     level='DEBUG'
 )
-
-
-
-LOGGING = {
-     'version': 1,
-     'disable_existing_loggers': False,
-     'formatters': {
-         'config': {
-             'format': '{levelname} --{asctime} -- {module} --{message}',
-             'style': '{'
-         }
-     },
-     'handlers': {
-         'my_console': {
-             'class': 'logging.StreamHandler',
-             'formatter': 'config'
-         },
-         'file': {
-             'class': 'logging.FileHandler',
-             'filename': 'app.log',
-             'formatter': 'config',
-         },
-         'for_operator': {
-             'class': 'logging.FileHandler',
-             'filename': 'apps.operator.log',
-             'formatter': 'config',
-         },
-         'for_ticket': {
-             'class': 'logging.FileHandler',
-             'filename': 'apps.queue.log',
-             'formatter': 'config',
-         },
-     },
-     'loggers': {
-         '': {
-             'handlers': ['my_console', 'file']
-         },
-
-         }
-     }
-
-
 
 
 

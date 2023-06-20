@@ -18,6 +18,7 @@ gunicorn
 pytz
 loguru
 django-extensions
+django-import-export
 
 
 

@@ -1,10 +1,16 @@
 from django.contrib import admin
 
-from apps.client.models import Client
-from apps.client.models import ReservedTicket
-from apps.client.models import Review
+from . import models
+from import_export.admin import ImportExportModelAdmin
 
-admin.site.register(Client)
-admin.site.register(ReservedTicket)
-admin.site.register(Review)
 
+class clientAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    ...
+class reservedTicketAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    ...
+
+class reviewAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    ...
+admin.site.register(models.Review,reviewAdmin)
+admin.site.register(models.Client,clientAdmin)
+admin.site.register(models.ReservedTicket,reservedTicketAdmin)

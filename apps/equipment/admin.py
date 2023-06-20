@@ -9,3 +9,4 @@ admin.site.register(Television)
 admin.site.register(Terminal)
 admin.site.register(MobileApp)
 admin.site.register(Website)
+

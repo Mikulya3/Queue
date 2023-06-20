@@ -1,7 +1,13 @@
 from django.contrib import admin
+from . import models
+from import_export.admin import ImportExportModelAdmin
 
-from apps.bank.models import Bank
-from apps.bank.models import Branch
 
-admin.site.register(Bank)
-admin.site.register(Branch)
+class bankAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    ...
+class branchAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    ...
+
+
+admin.site.register(models.Bank,bankAdmin)
+admin.site.register(models.Branch,branchAdmin)

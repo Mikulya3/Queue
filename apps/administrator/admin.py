@@ -4,16 +4,11 @@ from django.contrib.auth import get_user_model
 from apps.account.models import QueueUser
 from apps.operators.models import Operator
 from apps.queue.models import Queue
+from . import models
+from import_export.admin import ImportExportModelAdmin
 
-
-
-
-
-
-User = get_user_model()
-
-@admin.register(QueueUser)
-class QueueUserAdmin(UserAdmin):
+@admin.register(models.QueueUser)
+class QueueUserAdmin(UserAdmin, ImportExportModelAdmin):
     ACCESS_LEVELS = {
         'administrator': 'full_access',
         'operator': 'partial_access',
@@ -32,11 +27,14 @@ class QueueUserAdmin(UserAdmin):
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Additional Info', {'fields': ('window_number', 'note', 'access_level', 'is_blocked')}),
     )
+class operatorAdmin(ImportExportModelAdmin,admin.ModelAdmin):
+    list_display = ['user', 'is_available', 'branch']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
+    list_filter = ['is_available', 'branch']
 
-@admin.register(Queue)
-class QueueAdmin(admin.ModelAdmin):
 
 
+class queueAdmin(ImportExportModelAdmin,admin.ModelAdmin):
     list_display = ['name', 'queue_type', 'average_service_time','max_auto_automatic_calling', 'max_service_time']
     search_fields = ['name', 'queue_type', 'operator']
     list_filter = ['queue_type']
@@ -58,10 +56,5 @@ class QueueAdmin(admin.ModelAdmin):
             'fields': ('general_calendar', 'individual_calendar'),
         }),
     )
+admin.site.register(models.Queue,queueAdmin)
 
-
-@admin.register(Operator)
-class OperatorAdmin(admin.ModelAdmin):
-    list_display = ['user', 'is_available', 'branch']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name']
-    list_filter = ['is_available', 'branch']
