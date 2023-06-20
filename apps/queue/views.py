@@ -1,3 +1,6 @@
+from django.db.migrations import serializer
+from drf_yasg.utils import swagger_auto_schema
+from loguru import logger
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -16,15 +19,14 @@ from django.db.models import Avg, F
 from apps.queue.tasks import send_notification_email
 import csv
 from django.http import HttpResponse
-#from twilio.rest import Client
 from django.db.models import Count
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
-from datetime import time
-from django.db.models import Prefetch
 from apps.queue.tasks import call_next_available_operator_auto_task
+logger.add("file_{time}.log", level="TRACE", rotation="100 MB")
 
 
+@swagger_auto_schema(methods=['post'], request_body=QueueSerializer, responses={201: QueueSerializer(), 400: 'bad request'})
 @api_view(['POST'])
 def create_queue(request):
     serializer = QueueSerializer(data=request.data)
@@ -32,6 +34,8 @@ def create_queue(request):
         queue = serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 @api_view(['DELETE'])
 def delete_queue(request, queue_id):
@@ -115,15 +119,14 @@ def get_queue_status(request, queue_id):
 def generate_ticket_number():
     return str(randint(1000, 9999))
 
-
+@logger.catch()
 @api_view(['POST'])
 def generate_ticket(request, queue_id):
     try:
         queue = Queue.objects.get(id=queue_id)
-
         if queue.is_paused:
+            logger.warning('Cannot generate ticket. Queue is paused.')
             return Response({'message': 'Cannot generate ticket. Queue is paused.'}, status=status.HTTP_400_BAD_REQUEST)
-
         ticket_number = generate_ticket_number()
         expiration_time = datetime.now() + timedelta(minutes=30)  # Истечение через 30 минут
 
@@ -142,13 +145,14 @@ def generate_ticket(request, queue_id):
             wait_time=wait_time,  # Присваивание времени ожидания
         )
         serializer = TicketSerializer(ticket)
-
         # Создание записи в истории билета
         history = TicketHistory.objects.create(ticket=ticket, action='Generated', timestamp=datetime.now())
-
+        logger.info(f'Ticket {ticket_number} created for queue {queue_id}')
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     except Queue.DoesNotExist:
+        logger.error(f'Queue with ID {queue_id} does not exist')
         return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['POST'])
 def call_next_ticket(request, queue_id):
@@ -157,6 +161,7 @@ def call_next_ticket(request, queue_id):
         next_ticket = Ticket.objects.filter(queue=queue, status='waiting').order_by('created_at').first()
         if next_ticket:
             next_ticket.status = 'called'
+            queue.is_automatic_calling_enabled = True
             next_ticket.save()
             serializer = TicketSerializer(next_ticket)
 
@@ -167,16 +172,21 @@ def call_next_ticket(request, queue_id):
         return Response({'message': 'No more tickets in the queue'}, status=status.HTTP_404_NOT_FOUND)
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-
+@logger.catch()
 @api_view(['DELETE'])
 def delete_ticket(request, ticket_id):
     try:
         ticket = Ticket.objects.get(id=ticket_id)
         ticket.delete()
+
+        # logger.info(f'Ticket {ticket_id} deleted')
+
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Ticket.DoesNotExist:
+        # logger.error(f'Ticket with ID {ticket_id} does not exist')
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+@logger.catch()
 @api_view(['PUT'])
 def move_ticket_to_queue(request, ticket_id, new_queue_id):
     try:
@@ -189,11 +199,12 @@ def move_ticket_to_queue(request, ticket_id, new_queue_id):
         ticket.queue = new_queue
         ticket.branch = new_queue.branch
         ticket.save()
+        # logger.info(f'Ticket {ticket_id} status updated to {new_queue_id}')
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
     except (Ticket.DoesNotExist, Queue.DoesNotExist):
         return Response(status=status.HTTP_404_NOT_FOUND)
-
+@logger.catch()
 @api_view(['PUT'])
 def update_ticket_status(request, ticket_id):
     try:
@@ -204,9 +215,14 @@ def update_ticket_status(request, ticket_id):
             ticket.served_at = timezone.now()  # Установка текущего времени в served_at
         ticket.save()
         serializer = TicketSerializer(ticket)
+
+        # logger.info(f'Ticket {ticket_id} status updated to {new_status}')
+
         return Response(serializer.data)
     except Ticket.DoesNotExist:
+        # logger.error(f'Ticket with ID {ticket_id} does not exist')
         return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['GET'])
 def get_waiting_tickets(request):
@@ -248,6 +264,9 @@ def calculate_average_wait_time(request, queue_id):
         queue = Queue.objects.get(id=queue_id)
         served_tickets = Ticket.objects.filter(queue=queue, status='served', served_at__isnull=False)
         average_wait_time = served_tickets.aggregate(avg_wait_time=Avg(F('served_at') - F('created_at')))
+        average_service_time = queue.average_service_time
+        if average_wait_time['avg_wat_time'] > average_service_time:
+            return Response({'message':'Среднее время обслуживания больше чем установленное время'})
         return Response({'average_wait_time': average_wait_time['avg_wait_time']})
     except Queue.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
@@ -605,6 +624,9 @@ def set_max_waiting_time(request, queue_id):
         queue = Queue.objects.get(id=queue_id)
         max_waiting_time = request.data.get('max_waiting_time')
         queue.max_waiting_time = max_waiting_time
+        max_service_time=queue.max_service_time
+        if max_waiting_time > max_service_time:
+            return Response({'message': 'Максимальное время ожидание не может быть превышена установленного времени'})
         queue.save()
         serializer = QueueSerializer(queue)
         return Response(serializer.data)

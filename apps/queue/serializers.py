@@ -8,6 +8,7 @@ class QueueSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+
 class TicketSerializer(serializers.ModelSerializer):
     operator = OperatorSerializer()  # Добавление поля оператор
     class Meta:

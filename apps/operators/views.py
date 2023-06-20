@@ -1,12 +1,11 @@
-
-
+from loguru import logger
 from rest_framework import status
 from rest_framework.views import APIView
-from .models import Operator
+from apps.operators.models import Operator
 from apps.queue.serializers import OperatorSerializer
 from rest_framework.response import Response
 from rest_framework import generics
-from django.db import IntegrityError
+logger.add("file_{time}.log", level="TRACE", rotation="100 MB")
 
 # Выводит по запросу список всех операторов --------------------------------------------------------------------------->
 class OperatorListAPIView(APIView):
@@ -23,20 +22,17 @@ class OperatorListAPIView(APIView):
 
 # Создает оператора, ссылаясь на данные из id - account и выдает персональный id - оператора -------------------------->
 # Принимает 2 поля Обязательно: name(int); Необязательно: is_available(bool - принимает по умолчанию true)
+
 class OperatorCreateView(APIView):
+    @logger.catch()
     def post(self, request, format=None):
         serializer = OperatorSerializer(data=request.data)
         if serializer.is_valid():
-            try:
-                operator = serializer.save()
-                data = {
-                    "message": "Оператор успешно создан",
-                    "data": serializer.data
-                }
-                return Response(data, status=status.HTTP_201_CREATED)
-            except IntegrityError:
-                return Response({"message": "Оператор с таким именем уже существует"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            return Response({"message": "Оператор успешно создан"}, status=status.HTTP_201_CREATED)
+        print(serializer.errors)  # Debugging: Print serializer errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ---------------------------------------------------------------------------------------------------------------------<
 
@@ -61,10 +57,12 @@ class OperatorUpdateView(generics.UpdateAPIView):
 # ---------------------------------------------------------------------------------------------------------------------<
 
 # Удаляет оператора, принимает в запросе /pk/ ------------------------------------------------------------------------->
+
 class OperatorDeleteView(generics.DestroyAPIView):
     serializer_class = OperatorSerializer
     queryset = Operator.objects.all()
 
+    @logger.catch()
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)

@@ -77,14 +77,13 @@ class ForgotPasswordSerializer(serializers.Serializer):
 
 
 class ForgotPasswordCompleteSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
     code = serializers.CharField(required=True)
     password = serializers.CharField(required=True, min_length=6)
     password_confirm = serializers.CharField(required=True,min_length=6)
-    def validate_email(self,email):
-        if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('user not register')
-        return email
+    # def validate_email(self,email):
+    #     if not User.objects.filter(email=email).exists():
+    #         raise serializers.ValidationError('user not register')
+    #     return email
 
     def validate_code(self, code):
         if not User.objects.filter(activation_code = code).exists():
@@ -96,10 +95,15 @@ class ForgotPasswordCompleteSerializer(serializers.Serializer):
         if p1 != p2 :
             raise serializers.ValidationError('passwords are not match!')
         return attrs
+
     def set_new_password(self):
-        email = self.validated_data.get('email')
+        code = self.validated_data.get('code')
         password = self.validated_data.get('password')
-        user = User.objects.get(email=email)
+
+        if not User.objects.filter(activation_code=code).exists():
+            raise serializers.ValidationError('Wrong code!')
+
+        user = User.objects.get(activation_code=code)
         user.set_password(password)
         user.activation_code = ''
         user.save()

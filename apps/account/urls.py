@@ -13,4 +13,5 @@ urlpatterns = [
     path("forgot_password/", views.ForgotPasswordAPIView.as_view(), name='change_password'),
     path("forgot_password_complete/", views.ForgotPasswordCompleteAPIView.as_view(), name='change_password'),
     path("delete/account/", views.DeleteAccountAPIView.as_view(), name='delete_account'),
+    path("logout/", views.LogoutAPIView.as_view(), name='logout'),
 ]

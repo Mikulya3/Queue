@@ -47,11 +47,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD
-=======
-    'corsheaders',
     'django_crontab',
->>>>>>> ab43b1fe5b8efee48a8f6060d4dfd240102951df
+
 
     # lib
     'rest_framework',
@@ -65,12 +62,11 @@ INSTALLED_APPS = [
     # apps
     'apps.account',
     'apps.operators',
-    'apps.talon',
     'apps.bank',
     'apps.equipment',
     'apps.queue',
     'apps.client',
-    # 'apps.administrator'
+    'apps.administrator'
 
 ]
 
@@ -248,16 +244,31 @@ SWAGGER_SETTINGS = {
 }
 
 
-# создаем папку logs
-log_directory = os.path.join(BASE_DIR, 'logs')
-os.makedirs(log_directory, exist_ok=True)
-rotation_duration = timedelta(days=15).total_seconds() # переводим 15 дней в сек
-logger.add(                                            # настройки loguru
-    os.path.join(log_directory, 'talon.log'),
+# создание для талонов
+ticket_log_directory = os.path.join(BASE_DIR, 'logs', 'ticket')
+os.makedirs(ticket_log_directory, exist_ok=True)
+
+# настройки
+rotation_duration = timedelta(days=15).total_seconds()
+logger.add(
+    os.path.join(ticket_log_directory, 'ticket.log'),
     rotation=rotation_duration,
-    retention='15 days',  # автоудаление после 15 дней
-    level='DEBUG'  #
+    retention='15 days',
+    level='DEBUG'
 )
+
+#  создание для операторов
+operator_log_directory = os.path.join(BASE_DIR, 'logs', 'operator')
+os.makedirs(operator_log_directory, exist_ok=True)
+# настройки
+rotation_duration = timedelta(days=15).total_seconds()
+logger.add(
+    os.path.join(operator_log_directory, 'operator.log'),
+    rotation=rotation_duration,
+    retention='15 days',
+    level='DEBUG'
+)
+
 
 
 LOGGING = {
@@ -279,14 +290,14 @@ LOGGING = {
              'filename': 'app.log',
              'formatter': 'config',
          },
-         'for_registrator': {
+         'for_operator': {
              'class': 'logging.FileHandler',
-             'filename': 'apps.registrator.log',
+             'filename': 'apps.operator.log',
              'formatter': 'config',
          },
-         'for_talon': {
+         'for_ticket': {
              'class': 'logging.FileHandler',
-             'filename': 'apps.talon.log',
+             'filename': 'apps.queue.log',
              'formatter': 'config',
          },
      },
@@ -294,12 +305,11 @@ LOGGING = {
          '': {
              'handlers': ['my_console', 'file']
          },
-         'apps.registrator.views': {
-             'handlers': ['for_registrator']
+
          }
      }
 
- }
+
 
 
 

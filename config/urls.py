@@ -46,14 +46,13 @@ urlpatterns = i18n_patterns(
     path('admin/', admin.site.urls),
     path('account/', include('apps.account.urls')),
     path('operators/', include('apps.operators.urls')),
-    path('talon/', include('apps.talon.urls')),
+    path('queue/', include('apps.queue.urls')),
     # path('administrator/', include('apps.administrator.urls')),
     path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
-    path('queue/', include('apps.queue.urls')),
 )
 urlpatterns += [path('i18n/', include('django.conf.urls.i18n')),]
 urlpatterns += static(

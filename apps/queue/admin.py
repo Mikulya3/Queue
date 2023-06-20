@@ -5,7 +5,7 @@ from apps.queue.models import ReservedTicket
 from apps.queue.models import Ticket
 from apps.queue.models import TicketHistory
 
-admin.site.register(Queue)
+
 admin.site.register(ReservedTicket)
 admin.site.register(Ticket)
 admin.site.register(TicketHistory)
